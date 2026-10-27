@@ -26,3 +26,6 @@ add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
 # Set up dependencies, resources, and link Geode.
 setup_geode_mod(${PROJECT_NAME})
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    target_compile_options(GeodeBindings PRIVATE -include fmod.h)
+endif()
