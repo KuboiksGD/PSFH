@@ -1,27 +1,32 @@
 
 #include <Geode/Geode.hpp>
+#include <Geode/ui/Popup.hpp>
 #include <Geode/modify/MenuLayer.hpp>
 
 using namespace geode::prelude;
 
-class PLJukeboxPopup : public geode::Popup<> {
+class PLJukeboxPopup : public geode::Popup {
 protected:
     CCLabelBMFont* m_contentLabel = nullptr;
 
-    bool setup() override {
+    bool init() {
+        if (!geode::Popup::init(360.f, 250.f)) {
+            return false;
+        }
+
         this->setTitle("PL JUKEBOX");
 
-        auto size = m_mainLayer->getContentSize();
+        auto size = this->getContentSize();
 
         auto search = CCTextInputNode::create(
-            260.f, 30.f, "Search mashups...", "bigFont.fnt"
+            240.f, 30.f, "Search mashups...", "bigFont.fnt"
         );
-        search->setPosition({size.width / 2, size.height - 48.f});
-        m_mainLayer->addChild(search);
+        search->setPosition({size.width / 2, size.height - 55.f});
+        this->addChild(search);
 
         auto tabs = CCMenu::create();
-        tabs->setPosition({size.width / 2, size.height - 88.f});
-        m_mainLayer->addChild(tabs);
+        tabs->setPosition({size.width / 2, size.height - 100.f});
+        this->addChild(tabs);
 
         auto popular = CCMenuItemLabel::create(
             CCLabelBMFont::create("Popular", "bigFont.fnt"),
@@ -41,7 +46,7 @@ protected:
         tabs->addChild(popular);
         tabs->addChild(liked);
         tabs->addChild(recent);
-        tabs->alignItemsHorizontallyWithPadding(12.f);
+        tabs->alignItemsHorizontallyWithPadding(8.f);
 
         m_contentLabel = CCLabelBMFont::create(
             "Welcome to PL JUKEBOX!\n\nMashup list coming soon.",
@@ -52,8 +57,7 @@ protected:
             size.width / 2,
             size.height / 2 - 25.f
         });
-        m_contentLabel->setID("jukebox-content"_spr);
-        m_mainLayer->addChild(m_contentLabel);
+        this->addChild(m_contentLabel);
 
         return true;
     }
@@ -62,7 +66,7 @@ public:
     static PLJukeboxPopup* create() {
         auto ret = new PLJukeboxPopup();
 
-        if (ret->init(360.f, 250.f)) {
+        if (ret->init()) {
             ret->autorelease();
             return ret;
         }
