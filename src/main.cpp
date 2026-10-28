@@ -10,175 +10,346 @@ protected:
     CCMenu* m_categoryMenu = nullptr;
     CCLabelBMFont* m_statusLabel = nullptr;
 
-    void addRect(
+    // Zaokraglony panel oparty na teksturze gry.
+    CCScale9Sprite* makePanel(
         CCNode* parent,
-        float x, float y,
-        float w, float h,
-        ccColor4B color,
-        int z = 1
+        CCPoint position,
+        CCSize size,
+        ccColor3B color,
+        GLubyte opacity = 255,
+        float inset = 8.f
     ) {
-        auto rect = CCLayerColor::create(color, w, h);
-        rect->setPosition({x, y});
-        parent->addChild(rect, z);
+        auto panel = CCScale9Sprite::create("square02b_001.png");
+
+        if (!panel) {
+            auto fallback = CCLayerColor::create(
+                ccc4(color.r, color.g, color.b, opacity),
+                size.width,
+                size.height
+            );
+            fallback->setPosition(position);
+            parent->addChild(fallback);
+            return nullptr;
+        }
+
+        panel->setAnchorPoint({0.5f, 0.5f});
+        panel->setPosition(position);
+        panel->setContentSize(size);
+        panel->setColor(color);
+        panel->setOpacity(opacity);
+        parent->addChild(panel);
+
+        return panel;
     }
 
-    CCLabelBMFont* addText(
+    CCLabelBMFont* makeLabel(
         CCNode* parent,
         const char* text,
-        float x, float y,
-        float scale,
-        ccColor3B color = {255, 255, 255},
-        int z = 5
+        CCPoint position,
+        float scale
     ) {
         auto label = CCLabelBMFont::create(text, "bigFont.fnt");
         if (!label) return nullptr;
 
+        label->setPosition(position);
         label->setScale(scale);
-        label->setColor(color);
-        label->setPosition({x, y});
-        parent->addChild(label, z);
+        parent->addChild(label);
         return label;
     }
 
-    CCMenuItemSpriteExtra* createCategory(
+    CCMenuItemSpriteExtra* makeCategory(
         const char* text,
         SEL_MenuHandler callback,
-        ccColor4B color
+        bool selected
     ) {
-        auto background = CCLayerColor::create(color, 105.f, 27.f);
+        auto buttonBg = CCScale9Sprite::create("square02b_001.png");
+
+        if (buttonBg) {
+            buttonBg->setContentSize({105.f, 30.f});
+            buttonBg->setColor(
+                selected
+                    ? ccc3(190, 0, 240)
+                    : ccc3(53, 58, 69)
+            );
+        } else {
+            buttonBg = nullptr;
+        }
+
+        CCNode* buttonVisual = buttonBg;
+
+        if (!buttonVisual) {
+            buttonVisual = CCLayerColor::create(
+                selected
+                    ? ccc4(190, 0, 240, 255)
+                    : ccc4(53, 58, 69, 255),
+                105.f,
+                30.f
+            );
+        }
 
         auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-        label->setScale(0.34f);
-        label->setPosition({52.5f, 13.5f});
-        background->addChild(label);
+        label->setScale(0.32f);
+        label->setPosition({52.5f, 15.f});
+        buttonVisual->addChild(label);
 
         return CCMenuItemSpriteExtra::create(
-            background,
+            buttonVisual,
             this,
             callback
         );
     }
 
+    void selectCategory(const char* category) {
+        if (m_statusLabel) {
+            m_statusLabel->setString(category);
+        }
+    }
+
     bool init() {
-        // Proporcje okna dopasowane do projektu
         if (!geode::Popup::init(460.f, 330.f)) {
             return false;
         }
 
         auto size = this->getContentSize();
 
-        // Główna ramka okna
-        addRect(this, 2.f, 2.f, size.width - 4.f,
-            size.height - 4.f, ccc4(12, 12, 12, 255), 0);
-
-        addRect(this, 5.f, 5.f, size.width - 10.f,
-            size.height - 10.f, ccc4(245, 245, 245, 255), 0);
-
-        addRect(this, 8.f, 8.f, size.width - 16.f,
-            size.height - 16.f, ccc4(100, 48, 26, 255), 0);
-
-        // Wnętrze w brązowym kolorze
-        addRect(this, 11.f, 11.f, size.width - 22.f,
-            size.height - 22.f, ccc4(139, 75, 42, 255), 0);
-
-        // Górna część panelu
-        addRect(this, 11.f, size.height - 65.f,
-            size.width - 22.f, 54.f,
-            ccc4(111, 53, 29, 255), 1);
-
-        // Logo
-        addText(this, "PL JUKEBOX",
-            size.width / 2.f, size.height - 34.f, 0.78f);
-
-        addText(this, "~",
-            size.width / 2.f - 98.f,
-            size.height - 34.f, 0.9f,
-            {255, 40, 230});
-
-        addText(this, "~",
-            size.width / 2.f + 98.f,
-            size.height - 34.f, 0.9f,
-            {255, 40, 230});
-
-        // Wyszukiwarka — zewnętrzna ramka
-        addRect(this, 15.f, size.height - 104.f,
-            282.f, 34.f, ccc4(18, 18, 22, 255), 2);
-
-        // Wyszukiwarka — wewnętrzne tło
-        addRect(this, 18.f, size.height - 101.f,
-            276.f, 28.f, ccc4(35, 35, 42, 255), 3);
-
-        // Ikona lupy
-        addText(this, "Q", 30.f, size.height - 87.f, 0.45f,
-            {185, 190, 200}, 4);
-
-        auto searchInput = CCTextInputNode::create(
-            238.f, 25.f, "Search mashups...", "bigFont.fnt"
+        // Glowny panel i jego obramowanie.
+        makePanel(
+            this,
+            {size.width / 2.f, size.height / 2.f},
+            {size.width - 8.f, size.height - 8.f},
+            ccc3(15, 13, 17)
         );
-        searchInput->setScale(0.9f);
-        searchInput->setPosition({
-            158.f, size.height - 87.f
-        });
-        this->addChild(searchInput, 5);
 
-        // Duży pusty obszar listy
-        addRect(this, 12.f, 12.f,
-            303.f, 180.f, ccc4(62, 31, 20, 255), 1);
+        makePanel(
+            this,
+            {size.width / 2.f, size.height / 2.f},
+            {size.width - 15.f, size.height - 15.f},
+            ccc3(246, 246, 246)
+        );
 
-        addRect(this, 15.f, 15.f,
-            297.f, 174.f, ccc4(93, 47, 29, 255), 2);
+        makePanel(
+            this,
+            {size.width / 2.f, size.height / 2.f},
+            {size.width - 21.f, size.height - 21.f},
+            ccc3(132, 69, 39)
+        );
 
-        // Puste karty — bez miniatur, tekstów i statystyk
-        const float rowY[] = {151.f, 116.f, 81.f, 46.f, 11.f};
+        // Gorny pasek.
+        makePanel(
+            this,
+            {size.width / 2.f, size.height - 42.f},
+            {size.width - 22.f, 54.f},
+            ccc3(105, 48, 28)
+        );
 
-        for (int i = 0; i < 5; i++) {
-            addRect(this, 17.f, rowY[i],
-                293.f, 32.f, ccc4(48, 25, 18, 255), 3);
+        // Logo.
+        makeLabel(
+            this,
+            "PL JUKEBOX",
+            {size.width / 2.f, size.height - 39.f},
+            0.72f
+        );
 
-            addRect(this, 19.f, rowY[i] + 2.f,
-                289.f, 28.f, ccc4(72, 37, 25, 255), 4);
+        makeLabel(
+            this,
+            "~",
+            {size.width / 2.f - 100.f, size.height - 39.f},
+            0.85f
+        )->setColor({240, 0, 255});
+
+        makeLabel(
+            this,
+            "~",
+            {size.width / 2.f + 100.f, size.height - 39.f},
+            0.85f
+        )->setColor({240, 0, 255});
+
+        // Wyszukiwarka.
+        makePanel(
+            this,
+            {151.f, size.height - 84.f},
+            {282.f, 34.f},
+            ccc3(17, 17, 22)
+        );
+
+        makePanel(
+            this,
+            {151.f, size.height - 84.f},
+            {276.f, 28.f},
+            ccc3(37, 38, 45)
+        );
+
+        makeLabel(
+            this,
+            "Q",
+            {31.f, size.height - 84.f},
+            0.42f
+        )->setColor({180, 190, 205});
+
+        auto search = CCTextInputNode::create(
+            225.f,
+            25.f,
+            "Search mashups...",
+            "bigFont.fnt"
+        );
+        search->setPosition({160.f, size.height - 84.f});
+        search->setScale(0.62f);
+        this->addChild(search, 5);
+
+        // Obszar listy.
+        makePanel(
+            this,
+            {163.f, 111.f},
+            {296.f, 187.f},
+            ccc3(54, 27, 19)
+        );
+
+        makePanel(
+            this,
+            {163.f, 111.f},
+            {286.f, 177.f},
+            ccc3(83, 42, 27)
+        );
+
+        // Puste karty. Bez utworow, tytulow i statystyk.
+        const float rowY[] = {177.f, 141.f, 105.f, 69.f, 33.f};
+
+        for (int i = 0; i < 5; ++i) {
+            makePanel(
+                this,
+                {158.f, rowY[i]},
+                {276.f, 33.f},
+                ccc3(48, 25, 19)
+            );
+
+            makePanel(
+                this,
+                {158.f, rowY[i]},
+                {269.f, 27.f},
+                ccc3(76, 38, 26)
+            );
+
+            // Puste miejsce na miniature.
+            makePanel(
+                this,
+                {48.f, rowY[i]},
+                {48.f, 22.f},
+                ccc3(54, 29, 45)
+            );
+
+            // Miejsce na tytul i autora.
+            makePanel(
+                this,
+                {153.f, rowY[i] + 5.f},
+                {130.f, 3.f},
+                ccc3(88, 46, 31),
+                170
+            );
+
+            makePanel(
+                this,
+                {131.f, rowY[i] - 5.f},
+                {86.f, 2.f},
+                ccc3(88, 46, 31),
+                140
+            );
+
+            // Miejsce na przycisk odtwarzania.
+            makePanel(
+                this,
+                {280.f, rowY[i]},
+                {25.f, 25.f},
+                ccc3(26, 45, 19)
+            );
+
+            makePanel(
+                this,
+                {280.f, rowY[i]},
+                {20.f, 20.f},
+                ccc3(105, 220, 28)
+            );
+
+            makeLabel(
+                this,
+                ">",
+                {280.f, rowY[i]},
+                0.42f
+            )->setColor({15, 25, 15});
         }
 
-        // Pasek przewijania obok listy
-        addRect(this, 316.f, 12.f,
-            9.f, 180.f, ccc4(25, 14, 10, 255), 3);
+        // Pasek przewijania.
+        makePanel(
+            this,
+            {316.f, 111.f},
+            {9.f, 187.f},
+            ccc3(36, 19, 14)
+        );
 
-        addRect(this, 318.f, 14.f,
-            5.f, 176.f, ccc4(85, 42, 25, 255), 4);
+        makePanel(
+            this,
+            {316.f, 157.f},
+            {5.f, 86.f},
+            ccc3(255, 145, 63)
+        );
 
-        addRect(this, 318.f, 137.f,
-            5.f, 50.f, ccc4(255, 145, 65, 255), 5);
+        // Prawy panel kategorii.
+        makePanel(
+            this,
+            {391.f, 192.f},
+            {119.f, 153.f},
+            ccc3(15, 14, 17)
+        );
 
-        // Panel kategorii po prawej
-        addRect(this, 333.f, 104.f,
-            117.f, 153.f, ccc4(17, 17, 20, 255), 2);
+        makePanel(
+            this,
+            {391.f, 192.f},
+            {111.f, 145.f},
+            ccc3(39, 35, 38)
+        );
 
-        addRect(this, 336.f, 107.f,
-            111.f, 147.f, ccc4(42, 35, 35, 255), 3);
+        // Przycisk ustawien.
+        auto settingsSprite =
+            CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
 
-        // Przyciski kategorii
+        if (settingsSprite) {
+            auto settings = CCMenuItemSpriteExtra::create(
+                settingsSprite,
+                this,
+                menu_selector(PLJukeboxPopup::onSettings)
+            );
+
+            settings->setScale(0.75f);
+
+            auto settingsMenu = CCMenu::create();
+            settingsMenu->setPosition({
+                size.width - 42.f,
+                size.height - 43.f
+            });
+            settingsMenu->addChild(settings);
+            this->addChild(settingsMenu, 8);
+        }
+
+        // Kategorie.
         m_categoryMenu = CCMenu::create();
-        m_categoryMenu->setPosition({
-            391.f, 218.f
-        });
-        this->addChild(m_categoryMenu, 6);
+        m_categoryMenu->setPosition({391.f, 218.f});
+        this->addChild(m_categoryMenu, 7);
 
-        auto popular = createCategory(
+        auto popular = makeCategory(
             "POPULAR",
             menu_selector(PLJukeboxPopup::onPopular),
-            ccc4(175, 0, 230, 255)
+            true
         );
 
-        auto liked = createCategory(
+        auto liked = makeCategory(
             "MOST LIKED",
             menu_selector(PLJukeboxPopup::onLiked),
-            ccc4(53, 58, 68, 255)
+            false
         );
 
-        auto recent = createCategory(
+        auto recent = makeCategory(
             "RECENT",
             menu_selector(PLJukeboxPopup::onRecent),
-            ccc4(53, 58, 68, 255)
+            false
         );
 
         popular->setPosition({0.f, 0.f});
@@ -189,30 +360,11 @@ protected:
         m_categoryMenu->addChild(liked);
         m_categoryMenu->addChild(recent);
 
-        // Przycisk ustawień w prawym górnym rogu
-        auto settingsSprite =
-            CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
-
-        if (settingsSprite) {
-            auto settingsButton = CCMenuItemSpriteExtra::create(
-                settingsSprite,
-                this,
-                menu_selector(PLJukeboxPopup::onSettings)
-            );
-
-            auto settingsMenu = CCMenu::create();
-            settingsMenu->setPosition({
-                size.width - 44.f,
-                size.height - 43.f
-            });
-            settingsMenu->addChild(settingsButton);
-            this->addChild(settingsMenu, 8);
-        }
-
-        m_statusLabel = addText(
-            this, "POPULAR",
-            391.f, 91.f, 0.28f,
-            {230, 220, 210}, 6
+        m_statusLabel = makeLabel(
+            this,
+            "POPULAR",
+            {391.f, 91.f},
+            0.28f
         );
 
         return true;
@@ -240,15 +392,15 @@ public:
     }
 
     void onPopular(CCObject*) {
-        m_statusLabel->setString("POPULAR");
+        selectCategory("POPULAR");
     }
 
     void onLiked(CCObject*) {
-        m_statusLabel->setString("MOST LIKED");
+        selectCategory("MOST LIKED");
     }
 
     void onRecent(CCObject*) {
-        m_statusLabel->setString("RECENT");
+        selectCategory("RECENT");
     }
 };
 
