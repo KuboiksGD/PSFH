@@ -28,17 +28,17 @@ protected:
         tabs->setPosition({size.width / 2, size.height - 100.f});
         this->addChild(tabs);
 
-        auto popular = CCMenuItemLabel::create(
+        auto popular = CCMenuItemSpriteExtra::create(
             CCLabelBMFont::create("Popular", "bigFont.fnt"),
             this, menu_selector(PLJukeboxPopup::onPopular)
         );
 
-        auto liked = CCMenuItemLabel::create(
+        auto liked = CCMenuItemSpriteExtra::create(
             CCLabelBMFont::create("Most Liked", "bigFont.fnt"),
             this, menu_selector(PLJukeboxPopup::onLiked)
         );
 
-        auto recent = CCMenuItemLabel::create(
+        auto recent = CCMenuItemSpriteExtra::create(
             CCLabelBMFont::create("Recent", "bigFont.fnt"),
             this, menu_selector(PLJukeboxPopup::onRecent)
         );
