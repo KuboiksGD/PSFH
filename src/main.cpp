@@ -7,335 +7,213 @@ using namespace geode::prelude;
 
 class PLJukeboxPopup : public geode::Popup {
 protected:
-    CCLabelBMFont* m_statusLabel = nullptr;
     CCMenu* m_categoryMenu = nullptr;
-    bool m_categoriesVisible = true;
+    CCLabelBMFont* m_statusLabel = nullptr;
 
-    void addLabel(
+    void addRect(
+        CCNode* parent,
+        float x, float y,
+        float w, float h,
+        ccColor4B color,
+        int z = 1
+    ) {
+        auto rect = CCLayerColor::create(color, w, h);
+        rect->setPosition({x, y});
+        parent->addChild(rect, z);
+    }
+
+    CCLabelBMFont* addText(
         CCNode* parent,
         const char* text,
-        CCPoint position,
+        float x, float y,
         float scale,
+        ccColor3B color = {255, 255, 255},
         int z = 5
     ) {
         auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-        if (!label) return;
+        if (!label) return nullptr;
 
         label->setScale(scale);
-        label->setAnchorPoint({0.f, 0.5f});
-        label->setPosition(position);
+        label->setColor(color);
+        label->setPosition({x, y});
         parent->addChild(label, z);
+        return label;
     }
 
-    void addMashupRow(
-        CCNode* parent,
-        float y,
-        const char* name,
-        const char* author,
-        const char* likes,
-        const char* downloads,
-        const char* duration,
-        ccColor4B thumbnailColor
+    CCMenuItemSpriteExtra* createCategory(
+        const char* text,
+        SEL_MenuHandler callback,
+        ccColor4B color
     ) {
-        // Karta mashupu
-        auto row = CCLayerColor::create(
-            ccc4(45, 23, 15, 255),
-            292.f,
-            41.f
+        auto background = CCLayerColor::create(color, 105.f, 27.f);
+
+        auto label = CCLabelBMFont::create(text, "bigFont.fnt");
+        label->setScale(0.34f);
+        label->setPosition({52.5f, 13.5f});
+        background->addChild(label);
+
+        return CCMenuItemSpriteExtra::create(
+            background,
+            this,
+            callback
         );
-        row->setPosition({12.f, y});
-        parent->addChild(row, 3);
-
-        // Kolorowa miniatura
-        auto thumbnail = CCLayerColor::create(
-            thumbnailColor,
-            62.f,
-            31.f
-        );
-        thumbnail->setPosition({5.f, 5.f});
-        row->addChild(thumbnail, 1);
-
-        // Delikatna ramka miniatury
-        auto thumbnailBorder = CCLayerColor::create(
-            ccc4(125, 79, 48, 255),
-            64.f,
-            33.f
-        );
-        thumbnailBorder->setPosition({4.f, 4.f});
-        row->addChild(thumbnailBorder, 0);
-
-        // Tekst miniatury
-        auto thumbnailText = CCLabelBMFont::create(
-            name,
-            "bigFont.fnt"
-        );
-        thumbnailText->setScale(0.23f);
-        thumbnailText->setPosition({36.f, 20.f});
-        row->addChild(thumbnailText, 2);
-
-        // Nazwa mashupu
-        auto title = CCLabelBMFont::create(
-            name,
-            "bigFont.fnt"
-        );
-        title->setScale(0.34f);
-        title->setAnchorPoint({0.f, 0.5f});
-        title->setPosition({74.f, 29.f});
-        row->addChild(title, 2);
-
-        // Autor
-        auto creator = CCLabelBMFont::create(
-            author,
-            "bigFont.fnt"
-        );
-        creator->setScale(0.26f);
-        creator->setAnchorPoint({0.f, 0.5f});
-        creator->setPosition({74.f, 16.f});
-        row->addChild(creator, 2);
-
-        // Statystyki
-        auto stats = CCLabelBMFont::create(
-            (std::string("♥ ") + likes +
-             "   ↓ " + downloads +
-             "   " + duration).c_str(),
-            "bigFont.fnt"
-        );
-        stats->setScale(0.21f);
-        stats->setAnchorPoint({0.f, 0.5f});
-        stats->setPosition({74.f, 5.f});
-        row->addChild(stats, 2);
-
-        // Przycisk PLAY
-        auto playBackground = CCLayerColor::create(
-            ccc4(95, 210, 25, 255),
-            31.f,
-            30.f
-        );
-        playBackground->setPosition({254.f, 5.f});
-        row->addChild(playBackground, 2);
-
-        auto playBorder = CCLayerColor::create(
-            ccc4(20, 40, 15, 255),
-            35.f,
-            34.f
-        );
-        playBorder->setPosition({252.f, 3.f});
-        row->addChild(playBorder, 1);
-
-        auto playText = CCLabelBMFont::create(
-            ">",
-            "bigFont.fnt"
-        );
-        playText->setScale(0.75f);
-        playText->setPosition({269.f, 20.f});
-        row->addChild(playText, 3);
-    }
-
-    void showCategory(const char* category) {
-        if (m_statusLabel) {
-            m_statusLabel->setString(category);
-        }
-
-        m_categoriesVisible = false;
-        m_categoryMenu->setVisible(false);
     }
 
     bool init() {
+        // Proporcje okna dopasowane do projektu
         if (!geode::Popup::init(460.f, 330.f)) {
             return false;
         }
 
         auto size = this->getContentSize();
 
-        // Główne wnętrze okna
-        auto panel = CCLayerColor::create(
-            ccc4(133, 70, 39, 255),
-            size.width - 12.f,
-            size.height - 12.f
-        );
-        panel->setPosition({6.f, 6.f});
-        this->addChild(panel, 0);
+        // Główna ramka okna
+        addRect(this, 2.f, 2.f, size.width - 4.f,
+            size.height - 4.f, ccc4(12, 12, 12, 255), 0);
 
-        // Delikatny ciemny pasek u góry
-        auto header = CCLayerColor::create(
-            ccc4(103, 49, 27, 255),
-            size.width - 12.f,
-            57.f
-        );
-        header->setPosition({6.f, size.height - 63.f});
-        this->addChild(header, 1);
+        addRect(this, 5.f, 5.f, size.width - 10.f,
+            size.height - 10.f, ccc4(245, 245, 245, 255), 0);
+
+        addRect(this, 8.f, 8.f, size.width - 16.f,
+            size.height - 16.f, ccc4(100, 48, 26, 255), 0);
+
+        // Wnętrze w brązowym kolorze
+        addRect(this, 11.f, 11.f, size.width - 22.f,
+            size.height - 22.f, ccc4(139, 75, 42, 255), 0);
+
+        // Górna część panelu
+        addRect(this, 11.f, size.height - 65.f,
+            size.width - 22.f, 54.f,
+            ccc4(111, 53, 29, 255), 1);
 
         // Logo
-        auto logo = CCLabelBMFont::create(
-            "PL JUKEBOX",
-            "bigFont.fnt"
-        );
-        logo->setScale(0.85f);
-        logo->setPosition({
-            size.width / 2 - 10.f,
-            size.height - 31.f
-        });
-        this->addChild(logo, 5);
+        addText(this, "PL JUKEBOX",
+            size.width / 2.f, size.height - 34.f, 0.78f);
 
-        // Ikona muzyki
-        auto musicIcon = CCLabelBMFont::create(
-            "~",
-            "bigFont.fnt"
-        );
-        musicIcon->setScale(0.9f);
-        musicIcon->setPosition({
-            size.width / 2 - 103.f,
-            size.height - 31.f
-        });
-        this->addChild(musicIcon, 5);
+        addText(this, "~",
+            size.width / 2.f - 98.f,
+            size.height - 34.f, 0.9f,
+            {255, 40, 230});
 
-        // Wyszukiwarka — ciemne obramowanie
-        auto searchBorder = CCLayerColor::create(
-            ccc4(15, 15, 20, 255),
-            280.f,
-            31.f
-        );
-        searchBorder->setPosition({
-            15.f,
-            size.height - 101.f
-        });
-        this->addChild(searchBorder, 2);
+        addText(this, "~",
+            size.width / 2.f + 98.f,
+            size.height - 34.f, 0.9f,
+            {255, 40, 230});
 
-        auto searchBackground = CCLayerColor::create(
-            ccc4(36, 36, 44, 255),
-            274.f,
-            25.f
-        );
-        searchBackground->setPosition({
-            18.f,
-            size.height - 98.f
-        });
-        this->addChild(searchBackground, 3);
+        // Wyszukiwarka — zewnętrzna ramka
+        addRect(this, 15.f, size.height - 104.f,
+            282.f, 34.f, ccc4(18, 18, 22, 255), 2);
+
+        // Wyszukiwarka — wewnętrzne tło
+        addRect(this, 18.f, size.height - 101.f,
+            276.f, 28.f, ccc4(35, 35, 42, 255), 3);
+
+        // Ikona lupy
+        addText(this, "Q", 30.f, size.height - 87.f, 0.45f,
+            {185, 190, 200}, 4);
 
         auto searchInput = CCTextInputNode::create(
-            245.f,
-            25.f,
-            "Search mashups...",
-            "bigFont.fnt"
+            238.f, 25.f, "Search mashups...", "bigFont.fnt"
         );
+        searchInput->setScale(0.9f);
         searchInput->setPosition({
-            151.f,
-            size.height - 85.f
+            158.f, size.height - 87.f
         });
         this->addChild(searchInput, 5);
 
-        // Pięć kart mashupów
-        addMashupRow(
-            this, 180.f, "LIMBO MASHUP", "by Kuboiks",
-            "1.2K", "45K", "3:42",
-            ccc4(100, 20, 180, 255)
-        );
+        // Duży pusty obszar listy
+        addRect(this, 12.f, 12.f,
+            303.f, 180.f, ccc4(62, 31, 20, 255), 1);
 
-        addMashupRow(
-            this, 136.f, "SLAUGHTERHOUSE", "by Kuboiks",
-            "980", "32K", "4:15",
-            ccc4(180, 25, 35, 255)
-        );
+        addRect(this, 15.f, 15.f,
+            297.f, 174.f, ccc4(93, 47, 29, 255), 2);
 
-        addMashupRow(
-            this, 92.f, "ARCTIC LIGHTS", "by Kuboiks",
-            "2.1K", "76K", "5:03",
-            ccc4(20, 100, 190, 255)
-        );
+        // Puste karty — bez miniatur, tekstów i statystyk
+        const float rowY[] = {151.f, 116.f, 81.f, 46.f, 11.f};
 
-        addMashupRow(
-            this, 48.f, "WASURETA MASHUP", "by Kuboiks",
-            "870", "28K", "3:56",
-            ccc4(65, 75, 110, 255)
-        );
+        for (int i = 0; i < 5; i++) {
+            addRect(this, 17.f, rowY[i],
+                293.f, 32.f, ccc4(48, 25, 18, 255), 3);
 
-        addMashupRow(
-            this, 4.f, "BLOOMIA MASHUP", "by Kuboiks",
-            "640", "21K", "4:28",
-            ccc4(10, 160, 135, 255)
-        );
+            addRect(this, 19.f, rowY[i] + 2.f,
+                289.f, 28.f, ccc4(72, 37, 25, 255), 4);
+        }
 
-        // Panel kategorii
-        auto categoryPanel = CCLayerColor::create(
-            ccc4(35, 25, 25, 255),
-            112.f,
-            150.f
-        );
-        categoryPanel->setPosition({
-            size.width - 123.f,
-            size.height - 224.f
-        });
-        this->addChild(categoryPanel, 4);
+        // Pasek przewijania obok listy
+        addRect(this, 316.f, 12.f,
+            9.f, 180.f, ccc4(25, 14, 10, 255), 3);
 
-        auto categoryInner = CCLayerColor::create(
-            ccc4(54, 39, 38, 255),
-            106.f,
-            144.f
-        );
-        categoryInner->setPosition({
-            size.width - 120.f,
-            size.height - 221.f
-        });
-        this->addChild(categoryInner, 4);
+        addRect(this, 318.f, 14.f,
+            5.f, 176.f, ccc4(85, 42, 25, 255), 4);
 
-        // Przycisk ustawień
-        auto settingsButton = CCLabelBMFont::create(
-            "[*]",
-            "bigFont.fnt"
-        );
-        settingsButton->setScale(0.55f);
-        settingsButton->setPosition({
-            size.width - 65.f,
-            size.height - 75.f
-        });
-        this->addChild(settingsButton, 6);
+        addRect(this, 318.f, 137.f,
+            5.f, 50.f, ccc4(255, 145, 65, 255), 5);
+
+        // Panel kategorii po prawej
+        addRect(this, 333.f, 104.f,
+            117.f, 153.f, ccc4(17, 17, 20, 255), 2);
+
+        addRect(this, 336.f, 107.f,
+            111.f, 147.f, ccc4(42, 35, 35, 255), 3);
 
         // Przyciski kategorii
         m_categoryMenu = CCMenu::create();
         m_categoryMenu->setPosition({
-            size.width - 67.f,
-            size.height - 145.f
+            391.f, 218.f
         });
-        this->addChild(m_categoryMenu, 7);
+        this->addChild(m_categoryMenu, 6);
 
-        auto popular = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("POPULAR", "bigFont.fnt"),
-            this,
-            menu_selector(PLJukeboxPopup::onPopular)
+        auto popular = createCategory(
+            "POPULAR",
+            menu_selector(PLJukeboxPopup::onPopular),
+            ccc4(175, 0, 230, 255)
         );
 
-        auto liked = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("MOST LIKED", "bigFont.fnt"),
-            this,
-            menu_selector(PLJukeboxPopup::onLiked)
+        auto liked = createCategory(
+            "MOST LIKED",
+            menu_selector(PLJukeboxPopup::onLiked),
+            ccc4(53, 58, 68, 255)
         );
 
-        auto recent = CCMenuItemSpriteExtra::create(
-            CCLabelBMFont::create("RECENT", "bigFont.fnt"),
-            this,
-            menu_selector(PLJukeboxPopup::onRecent)
+        auto recent = createCategory(
+            "RECENT",
+            menu_selector(PLJukeboxPopup::onRecent),
+            ccc4(53, 58, 68, 255)
         );
 
-        popular->setScale(0.35f);
-        liked->setScale(0.35f);
-        recent->setScale(0.35f);
+        popular->setPosition({0.f, 0.f});
+        liked->setPosition({0.f, -37.f});
+        recent->setPosition({0.f, -74.f});
 
         m_categoryMenu->addChild(popular);
         m_categoryMenu->addChild(liked);
         m_categoryMenu->addChild(recent);
-        m_categoryMenu->alignItemsVerticallyWithPadding(25.f);
 
-        // Aktualna kategoria
-        m_statusLabel = CCLabelBMFont::create(
-            "POPULAR",
-            "bigFont.fnt"
+        // Przycisk ustawień w prawym górnym rogu
+        auto settingsSprite =
+            CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
+
+        if (settingsSprite) {
+            auto settingsButton = CCMenuItemSpriteExtra::create(
+                settingsSprite,
+                this,
+                menu_selector(PLJukeboxPopup::onSettings)
+            );
+
+            auto settingsMenu = CCMenu::create();
+            settingsMenu->setPosition({
+                size.width - 44.f,
+                size.height - 43.f
+            });
+            settingsMenu->addChild(settingsButton);
+            this->addChild(settingsMenu, 8);
+        }
+
+        m_statusLabel = addText(
+            this, "POPULAR",
+            391.f, 91.f, 0.28f,
+            {230, 220, 210}, 6
         );
-        m_statusLabel->setScale(0.3f);
-        m_statusLabel->setPosition({
-            size.width - 67.f,
-            size.height - 235.f
-        });
-        this->addChild(m_statusLabel, 6);
 
         return true;
     }
@@ -353,16 +231,24 @@ public:
         return nullptr;
     }
 
+    void onSettings(CCObject*) {
+        if (m_categoryMenu) {
+            m_categoryMenu->setVisible(
+                !m_categoryMenu->isVisible()
+            );
+        }
+    }
+
     void onPopular(CCObject*) {
-        showCategory("POPULAR");
+        m_statusLabel->setString("POPULAR");
     }
 
     void onLiked(CCObject*) {
-        showCategory("MOST LIKED");
+        m_statusLabel->setString("MOST LIKED");
     }
 
     void onRecent(CCObject*) {
-        showCategory("RECENT");
+        m_statusLabel->setString("RECENT");
     }
 };
 
