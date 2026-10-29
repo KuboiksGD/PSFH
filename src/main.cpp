@@ -7,144 +7,357 @@ using namespace geode::prelude;
 
 class PLJukeboxPopup : public geode::Popup {
 protected:
-    CCLayerColor* m_screen = nullptr;
+    CCLayerColor* m_blackOverlay = nullptr;
     bool m_closing = false;
 
-    void addRect(
+    void rect(
         CCNode* parent,
         float x, float y,
         float w, float h,
         ccColor4B color,
         int z = 1
     ) {
-        auto rect = CCLayerColor::create(color, w, h);
-        rect->setPosition({x, y});
-        parent->addChild(rect, z);
+        auto layer = CCLayerColor::create(color, w, h);
+        layer->setPosition({x, y});
+        parent->addChild(layer, z);
     }
 
-    void addBorder(
+    CCLabelBMFont* label(
+        CCNode* parent,
+        const char* text,
+        float x, float y,
+        float scale,
+        ccColor3B color = {255, 255, 255},
+        int z = 10
+    ) {
+        auto result = CCLabelBMFont::create(text, "bigFont.fnt");
+        if (!result) return nullptr;
+
+        result->setPosition({x, y});
+        result->setScale(scale);
+        result->setColor(color);
+        parent->addChild(result, z);
+        return result;
+    }
+
+    void makeButton(
         CCNode* parent,
         float x, float y,
-        float w, float h
+        float w, float h,
+        const char* text,
+        bool selected
     ) {
-        const float thickness = 7.f;
-        const float inset = 13.f;
+        // Ciemna ramka i cien.
+        rect(parent, x - 2.f, y - 2.f, w + 4.f, h + 4.f,
+            ccc4(35, 22, 20, 255), 5);
 
-        // Cien pod ramka.
-        addRect(parent, x - 2.f, y - 2.f,
-            w + 4.f, thickness + 4.f,
-            ccc4(22, 12, 20, 180), 1);
+        // Tlo kategorii.
+        rect(parent, x, y, w, h,
+            selected
+                ? ccc4(75, 143, 174, 255)
+                : ccc4(100, 69, 53, 255),
+            6);
 
-        addRect(parent, x - 2.f, y + h - thickness - 2.f,
-            w + 4.f, thickness + 4.f,
-            ccc4(22, 12, 20, 180), 1);
+        // Delikatny gorny highlight.
+        rect(parent, x + 3.f, y + h - 4.f, w - 6.f, 2.f,
+            selected
+                ? ccc4(180, 235, 245, 255)
+                : ccc4(155, 110, 81, 255),
+            7);
 
-        addRect(parent, x - 2.f, y,
-            thickness + 4.f, h,
-            ccc4(22, 12, 20, 180), 1);
-
-        addRect(parent, x + w - thickness - 2.f, y,
-            thickness + 4.f, h,
-            ccc4(22, 12, 20, 180), 1);
-
-        // Biala ramka.
-        addRect(parent, x, y, w, thickness,
-            ccc4(248, 248, 244, 255), 2);
-
-        addRect(parent, x, y + h - thickness, w, thickness,
-            ccc4(248, 248, 244, 255), 2);
-
-        addRect(parent, x, y, thickness, h,
-            ccc4(248, 248, 244, 255), 2);
-
-        addRect(parent, x + w - thickness, y, thickness, h,
-            ccc4(248, 248, 244, 255), 2);
-
-        // Cienka czerwona linia wewnetrzna.
-        addRect(parent, x + inset, y + inset,
-            w - inset * 2.f, 2.f,
-            ccc4(205, 35, 48, 255), 3);
-
-        addRect(parent, x + inset,
-            y + h - inset - 2.f,
-            w - inset * 2.f, 2.f,
-            ccc4(205, 35, 48, 255), 3);
-
-        addRect(parent, x + inset, y + inset,
-            2.f, h - inset * 2.f,
-            ccc4(205, 35, 48, 255), 3);
-
-        addRect(parent, x + w - inset - 2.f, y + inset,
-            2.f, h - inset * 2.f,
-            ccc4(205, 35, 48, 255), 3);
+        label(
+            parent, text,
+            x + w / 2.f, y + h / 2.f,
+            0.34f,
+            {255, 255, 255},
+            8
+        );
     }
 
     bool init() {
-        auto winSize = CCDirector::sharedDirector()->getWinSize();
+        auto win = CCDirector::sharedDirector()->getWinSize();
 
-        if (!geode::Popup::init(winSize.width, winSize.height)) {
+        if (!geode::Popup::init(win.width, win.height)) {
             return false;
         }
 
-        // Czarny ekran przez pierwsze pol sekundy.
-        auto black = CCLayerColor::create(
-            ccc4(0, 0, 0, 255),
-            winSize.width,
-            winSize.height
+        const float W = win.width;
+        const float H = win.height;
+
+        // =====================================================
+        // TLO
+        // =====================================================
+
+        rect(this, 0.f, 0.f, W, H,
+            ccc4(151, 216, 231, 255), 0);
+
+        // Subtelne pasy na krawedziach.
+        rect(this, 0.f, 0.f, W, H * 0.012f,
+            ccc4(111, 187, 208, 255), 1);
+
+        rect(this, 0.f, H * 0.988f, W, H * 0.012f,
+            ccc4(111, 187, 208, 255), 1);
+
+        // Cienka bialo-czerwona ramka ekranu.
+        rect(this, 8.f, 8.f, W - 16.f, 3.f,
+            ccc4(248, 248, 245, 255), 2);
+
+        rect(this, 8.f, H - 11.f, W - 16.f, 3.f,
+            ccc4(248, 248, 245, 255), 2);
+
+        rect(this, 8.f, 8.f, 3.f, H - 16.f,
+            ccc4(248, 248, 245, 255), 2);
+
+        rect(this, W - 11.f, 8.f, 3.f, H - 16.f,
+            ccc4(248, 248, 245, 255), 2);
+
+        // =====================================================
+        // POLSKIE AKCENTY PO BOKACH
+        // =====================================================
+
+        float flagY = H * 0.46f;
+        float flagW = W * 0.115f;
+        float flagH = H * 0.045f;
+
+        // Lewa flaga.
+        rect(this, 0.f, flagY + flagH, flagW, flagH,
+            ccc4(250, 250, 250, 245), 2);
+
+        rect(this, 0.f, flagY, flagW, flagH,
+            ccc4(220, 35, 48, 245), 2);
+
+        // Prawa flaga.
+        rect(this, W - flagW, flagY + flagH, flagW, flagH,
+            ccc4(250, 250, 250, 245), 2);
+
+        rect(this, W - flagW, flagY, flagW, flagH,
+            ccc4(220, 35, 48, 245), 2);
+
+        // =====================================================
+        // GLOWNY PANEL
+        // =====================================================
+
+        float panelX = W * 0.135f;
+        float panelY = H * 0.055f;
+        float panelW = W * 0.73f;
+        float panelH = H * 0.89f;
+
+        // Cien.
+        rect(this,
+            panelX + 8.f, panelY - 8.f,
+            panelW, panelH,
+            ccc4(40, 26, 28, 105), 3);
+
+        // Zewnetrzna obwodka.
+        rect(this,
+            panelX - 5.f, panelY - 5.f,
+            panelW + 10.f, panelH + 10.f,
+            ccc4(35, 24, 23, 255), 4);
+
+        // Biala linia.
+        rect(this,
+            panelX - 2.f, panelY - 2.f,
+            panelW + 4.f, panelH + 4.f,
+            ccc4(245, 244, 238, 255), 5);
+
+        // Czerwony akcent.
+        rect(this,
+            panelX, panelY,
+            panelW, panelH,
+            ccc4(195, 39, 48, 255), 6);
+
+        // Brazowe wypelnienie.
+        float inset = 5.f;
+
+        rect(this,
+            panelX + inset, panelY + inset,
+            panelW - inset * 2.f,
+            panelH - inset * 2.f,
+            ccc4(169, 111, 78, 255), 7);
+
+        // Delikatny pasek u gory panelu.
+        rect(this,
+            panelX + inset,
+            panelY + panelH - 48.f,
+            panelW - inset * 2.f,
+            43.f,
+            ccc4(145, 82, 53, 255), 8);
+
+        // =====================================================
+        // WYSZUKIWARKA
+        // =====================================================
+
+        float contentLeft = panelX + 25.f;
+        float searchY = panelY + panelH - 105.f;
+        float searchW = panelW * 0.55f;
+        float searchH = 43.f;
+
+        rect(this,
+            contentLeft - 3.f, searchY - 3.f,
+            searchW + 6.f, searchH + 6.f,
+            ccc4(49, 29, 25, 255), 9);
+
+        rect(this,
+            contentLeft, searchY,
+            searchW, searchH,
+            ccc4(91, 48, 34, 255), 10);
+
+        rect(this,
+            contentLeft + 4.f, searchY + 4.f,
+            searchW - 8.f, searchH - 8.f,
+            ccc4(53, 43, 43, 255), 11);
+
+        label(
+            this, "SEARCH",
+            contentLeft + 60.f,
+            searchY + searchH / 2.f,
+            0.43f,
+            {245, 245, 245},
+            12
         );
-        black->setPosition({0.f, 0.f});
-        this->addChild(black, 0);
 
-        // Przezroczysta warstwa na cale tlo i ramke.
-        m_screen = CCLayerColor::create(
-            ccc4(151, 216, 231, 0),
-            winSize.width,
-            winSize.height
-        );
-        m_screen->setPosition({0.f, 0.f});
-        m_screen->setOpacity(0);
-        m_screen->setCascadeOpacityEnabled(true);
-        this->addChild(m_screen, 2);
-
-        // Jasnoniebieskie tlo.
-        addRect(
-            m_screen,
-            0.f, 0.f,
-            winSize.width, winSize.height,
-            ccc4(151, 216, 231, 255),
-            0
+        auto search = CCTextInputNode::create(
+            searchW - 45.f,
+            25.f,
+            "Search mashups...",
+            "bigFont.fnt"
         );
 
-        // Subtelne przyciemnienie krawedzi tla.
-        addRect(
-            m_screen,
-            0.f, 0.f,
-            winSize.width, 9.f,
-            ccc4(110, 185, 207, 255),
-            1
+        search->setScale(0.65f);
+        search->setPosition({
+            contentLeft + searchW / 2.f + 15.f,
+            searchY + searchH / 2.f
+        });
+        this->addChild(search, 13);
+
+        // =====================================================
+        // PUSTA LISTA MASHUPOW
+        // =====================================================
+
+        float listX = contentLeft;
+        float listY = panelY + 25.f;
+        float listW = panelW * 0.55f;
+        float listTop = searchY - 20.f;
+        float listH = listTop - listY;
+
+        rect(this,
+            listX - 4.f, listY - 4.f,
+            listW + 8.f, listH + 8.f,
+            ccc4(72, 39, 27, 255), 9);
+
+        rect(this,
+            listX, listY,
+            listW, listH,
+            ccc4(119, 65, 43, 255), 10);
+
+        const int rowCount = 5;
+        float gap = 10.f;
+        float rowH = (listH - gap * (rowCount - 1)) / rowCount;
+
+        for (int i = 0; i < rowCount; i++) {
+            float rowY = listY + listH - rowH - i * (rowH + gap);
+
+            // Pusta karta.
+            rect(this,
+                listX + 5.f, rowY,
+                listW - 10.f, rowH,
+                ccc4(48, 30, 25, 255), 11);
+
+            rect(this,
+                listX + 9.f, rowY + 4.f,
+                listW - 18.f, rowH - 8.f,
+                ccc4(105, 57, 39, 255), 12);
+
+            // Puste miejsce na przyszla miniaturke.
+            float iconSize = rowH * 0.55f;
+            float iconX = listX + 18.f;
+            float iconY = rowY + (rowH - iconSize) / 2.f;
+
+            rect(this,
+                iconX, iconY,
+                iconSize, iconSize,
+                ccc4(185, 230, 80, 255), 13);
+
+            rect(this,
+                iconX + 3.f, iconY + 3.f,
+                iconSize - 6.f, iconSize - 6.f,
+                ccc4(105, 64, 45, 255), 14);
+        }
+
+        // =====================================================
+        // PANEL KATEGORII PO PRAWEJ
+        // =====================================================
+
+        float sideX = panelX + panelW * 0.68f;
+        float sideW = panelW * 0.27f;
+        float sideTop = panelY + panelH - 70.f;
+
+        label(
+            this, "CATEGORIES",
+            sideX + sideW / 2.f,
+            sideTop,
+            0.32f,
+            {255, 245, 235},
+            10
         );
 
-        addRect(
-            m_screen,
-            0.f, winSize.height - 9.f,
-            winSize.width, 9.f,
-            ccc4(110, 185, 207, 255),
-            1
+        float categoryH = 42.f;
+        float categoryGap = 15.f;
+        float categoryY = sideTop - 65.f;
+
+        makeButton(
+            this, sideX, categoryY,
+            sideW, categoryH,
+            "POPULAR", true
         );
 
-        // Polska bialo-czerwona ramka.
-        float marginX = winSize.width * 0.025f;
-        float marginY = winSize.height * 0.035f;
-
-        addBorder(
-            m_screen,
-            marginX,
-            marginY,
-            winSize.width - marginX * 2.f,
-            winSize.height - marginY * 2.f
+        makeButton(
+            this, sideX, categoryY - categoryH - categoryGap,
+            sideW, categoryH,
+            "MOST RECENT", false
         );
 
-        // Przycisk X w lewym gornym rogu.
+        makeButton(
+            this, sideX, categoryY - 2.f * (categoryH + categoryGap),
+            sideW, categoryH,
+            "LIKES", false
+        );
+
+        // Pusty obszar pod kategoriami — bez przykladowych piosenek.
+        rect(this,
+            sideX, panelY + 30.f,
+            sideW, panelH * 0.30f,
+            ccc4(142, 82, 55, 100), 8);
+
+        // =====================================================
+        // USTAWIENIA
+        // =====================================================
+
+        auto settingsSprite =
+            CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
+
+        if (settingsSprite) {
+            auto settingsButton = CCMenuItemSpriteExtra::create(
+                settingsSprite,
+                this,
+                menu_selector(PLJukeboxPopup::onSettings)
+            );
+
+            settingsButton->setScale(0.75f);
+
+            auto settingsMenu = CCMenu::create();
+            settingsMenu->setPosition({
+                panelX + panelW - 42.f,
+                panelY + panelH - 28.f
+            });
+            settingsMenu->addChild(settingsButton);
+            this->addChild(settingsMenu, 30);
+        }
+
+        // =====================================================
+        // PRZYCISK X
+        // =====================================================
+
         auto closeSprite =
             CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
 
@@ -159,12 +372,24 @@ protected:
 
             auto closeMenu = CCMenu::create();
             closeMenu->setPosition({
-                34.f,
-                winSize.height - 34.f
+                39.f,
+                H - 39.f
             });
             closeMenu->addChild(closeButton);
-            m_screen->addChild(closeMenu, 10);
+            this->addChild(closeMenu, 40);
         }
+
+        // =====================================================
+        // CZARNA WARSTWA DO ANIMACJI
+        // =====================================================
+
+        m_blackOverlay = CCLayerColor::create(
+            ccc4(0, 0, 0, 255),
+            W, H
+        );
+
+        m_blackOverlay->setPosition({0.f, 0.f});
+        this->addChild(m_blackOverlay, 100);
 
         return true;
     }
@@ -172,13 +397,14 @@ protected:
     void onEnter() {
         geode::Popup::onEnter();
 
-        // Pol sekundy czerni, nastepnie plynne pojawienie sie tla.
-        m_screen->stopAllActions();
-        m_screen->runAction(
+        // Najpierw widac czern, potem odslaniamy caly interfejs.
+        m_blackOverlay->stopAllActions();
+
+        m_blackOverlay->runAction(
             CCSequence::create(
                 CCDelayTime::create(0.5f),
                 CCEaseSineOut::create(
-                    CCFadeIn::create(0.45f)
+                    CCFadeTo::create(0.65f, 0)
                 ),
                 nullptr
             )
@@ -202,18 +428,21 @@ public:
         return nullptr;
     }
 
-    void onAnimatedClose(CCObject*) {
-        if (m_closing) {
-            return;
-        }
+    void onSettings(CCObject*) {
+        // Ustawienia dodamy pozniej.
+    }
 
+    void onAnimatedClose(CCObject*) {
+        if (m_closing) return;
         m_closing = true;
 
-        m_screen->stopAllActions();
-        m_screen->runAction(
+        // Czarny ekran wraca plynnie przed zamknieciem.
+        m_blackOverlay->stopAllActions();
+
+        m_blackOverlay->runAction(
             CCSequence::create(
                 CCEaseSineIn::create(
-                    CCFadeOut::create(0.3f)
+                    CCFadeTo::create(0.3f, 255)
                 ),
                 CCCallFunc::create(
                     this,
@@ -232,17 +461,13 @@ class $modify(PLJukeboxMenu, MenuLayer) {
         }
 
         auto menu = this->getChildByID("bottom-menu");
-        if (!menu) {
-            return true;
-        }
+        if (!menu) return true;
 
         auto sprite = CCSprite::createWithSpriteFrameName(
             "GJ_likeBtn_001.png"
         );
 
-        if (!sprite) {
-            return true;
-        }
+        if (!sprite) return true;
 
         auto button = CCMenuItemSpriteExtra::create(
             sprite,
