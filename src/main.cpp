@@ -7,8 +7,7 @@ using namespace geode::prelude;
 
 class PLJukeboxPopup : public geode::Popup {
 protected:
-    CCLayerColor* m_blackBackground = nullptr;
-    CCNode* m_screen = nullptr;
+    CCLayerColor* m_screen = nullptr;
     bool m_closing = false;
 
     void addRect(
@@ -28,11 +27,10 @@ protected:
         float x, float y,
         float w, float h
     ) {
-        // Biala ramka z delikatnym cieniem.
         const float thickness = 7.f;
         const float inset = 13.f;
 
-        // Cien.
+        // Cien pod ramka.
         addRect(parent, x - 2.f, y - 2.f,
             w + 4.f, thickness + 4.f,
             ccc4(22, 12, 20, 180), 1);
@@ -49,7 +47,7 @@ protected:
             thickness + 4.f, h,
             ccc4(22, 12, 20, 180), 1);
 
-        // Biale krawedzie.
+        // Biala ramka.
         addRect(parent, x, y, w, thickness,
             ccc4(248, 248, 244, 255), 2);
 
@@ -88,23 +86,27 @@ protected:
             return false;
         }
 
-        // Czarny ekran na poczatku.
-        m_blackBackground = CCLayerColor::create(
+        // Czarny ekran przez pierwsze pol sekundy.
+        auto black = CCLayerColor::create(
             ccc4(0, 0, 0, 255),
             winSize.width,
             winSize.height
         );
-        m_blackBackground->setPosition({0.f, 0.f});
-        this->addChild(m_blackBackground, 0);
+        black->setPosition({0.f, 0.f});
+        this->addChild(black, 0);
 
-        // Wszystkie elementy widoczne po animacji.
-        m_screen = CCNode::create();
+        // Przezroczysta warstwa na cale tlo i ramke.
+        m_screen = CCLayerColor::create(
+            ccc4(151, 216, 231, 0),
+            winSize.width,
+            winSize.height
+        );
         m_screen->setPosition({0.f, 0.f});
-        m_screen->setCascadeOpacityEnabled(true);
         m_screen->setOpacity(0);
+        m_screen->setCascadeOpacityEnabled(true);
         this->addChild(m_screen, 2);
 
-        // Jasnoniebieskie tlo na caly ekran.
+        // Jasnoniebieskie tlo.
         addRect(
             m_screen,
             0.f, 0.f,
@@ -113,19 +115,19 @@ protected:
             0
         );
 
-        // Subtelne niebieskie cienie przy krawedziach.
+        // Subtelne przyciemnienie krawedzi tla.
         addRect(
             m_screen,
             0.f, 0.f,
-            winSize.width, 10.f,
+            winSize.width, 9.f,
             ccc4(110, 185, 207, 255),
             1
         );
 
         addRect(
             m_screen,
-            0.f, winSize.height - 10.f,
-            winSize.width, 10.f,
+            0.f, winSize.height - 9.f,
+            winSize.width, 9.f,
             ccc4(110, 185, 207, 255),
             1
         );
@@ -170,7 +172,7 @@ protected:
     void onEnter() {
         geode::Popup::onEnter();
 
-        // Pol sekundy czerni, potem plynne pojawienie sie ekranu.
+        // Pol sekundy czerni, nastepnie plynne pojawienie sie tla.
         m_screen->stopAllActions();
         m_screen->runAction(
             CCSequence::create(
@@ -207,7 +209,6 @@ public:
 
         m_closing = true;
 
-        // Plynne wygaszenie i powrot do menu.
         m_screen->stopAllActions();
         m_screen->runAction(
             CCSequence::create(
