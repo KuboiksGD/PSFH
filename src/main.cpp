@@ -7,365 +7,121 @@ using namespace geode::prelude;
 
 class PLJukeboxPopup : public geode::Popup {
 protected:
-    CCMenu* m_categoryMenu = nullptr;
-    CCLabelBMFont* m_statusLabel = nullptr;
-
-    // Zaokraglony panel oparty na teksturze gry.
-    CCScale9Sprite* makePanel(
+    void rect(
         CCNode* parent,
-        CCPoint position,
-        CCSize size,
-        ccColor3B color,
-        GLubyte opacity = 255,
-        float inset = 8.f
+        float x, float y,
+        float w, float h,
+        ccColor4B color,
+        int z = 1
     ) {
-        auto panel = CCScale9Sprite::create("square02b_001.png");
-
-        if (!panel) {
-            auto fallback = CCLayerColor::create(
-                ccc4(color.r, color.g, color.b, opacity),
-                size.width,
-                size.height
-            );
-            fallback->setPosition(position);
-            parent->addChild(fallback);
-            return nullptr;
-        }
-
-        panel->setAnchorPoint({0.5f, 0.5f});
-        panel->setPosition(position);
-        panel->setContentSize(size);
-        panel->setColor(color);
-        panel->setOpacity(opacity);
-        parent->addChild(panel);
-
-        return panel;
-    }
-
-    CCLabelBMFont* makeLabel(
-        CCNode* parent,
-        const char* text,
-        CCPoint position,
-        float scale
-    ) {
-        auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-        if (!label) return nullptr;
-
-        label->setPosition(position);
-        label->setScale(scale);
-        parent->addChild(label);
-        return label;
-    }
-
-    CCMenuItemSpriteExtra* makeCategory(
-        const char* text,
-        SEL_MenuHandler callback,
-        bool selected
-    ) {
-        auto buttonBg = CCScale9Sprite::create("square02b_001.png");
-
-        if (buttonBg) {
-            buttonBg->setContentSize({105.f, 30.f});
-            buttonBg->setColor(
-                selected
-                    ? ccc3(190, 0, 240)
-                    : ccc3(53, 58, 69)
-            );
-        } else {
-            buttonBg = nullptr;
-        }
-
-        CCNode* buttonVisual = buttonBg;
-
-        if (!buttonVisual) {
-            buttonVisual = CCLayerColor::create(
-                selected
-                    ? ccc4(190, 0, 240, 255)
-                    : ccc4(53, 58, 69, 255),
-                105.f,
-                30.f
-            );
-        }
-
-        auto label = CCLabelBMFont::create(text, "bigFont.fnt");
-        label->setScale(0.32f);
-        label->setPosition({52.5f, 15.f});
-        buttonVisual->addChild(label);
-
-        return CCMenuItemSpriteExtra::create(
-            buttonVisual,
-            this,
-            callback
-        );
-    }
-
-    void selectCategory(const char* category) {
-        if (m_statusLabel) {
-            m_statusLabel->setString(category);
-        }
+        auto layer = CCLayerColor::create(color, w, h);
+        layer->setPosition({x, y});
+        parent->addChild(layer, z);
     }
 
     bool init() {
-        if (!geode::Popup::init(460.f, 330.f)) {
+        // Szeroki panel, zblizony proporcjami do okna STATS
+        if (!geode::Popup::init(480.f, 300.f)) {
             return false;
         }
 
         auto size = this->getContentSize();
+        float w = size.width;
+        float h = size.height;
 
-        // Glowny panel i jego obramowanie.
-        makePanel(
-            this,
-            {size.width / 2.f, size.height / 2.f},
-            {size.width - 8.f, size.height - 8.f},
-            ccc3(15, 13, 17)
-        );
+        // Zewnetrzna ciemna ramka
+        rect(this, 1.f, 1.f, w - 2.f, h - 2.f,
+            ccc4(18, 13, 19, 255), 0);
 
-        makePanel(
-            this,
-            {size.width / 2.f, size.height / 2.f},
-            {size.width - 15.f, size.height - 15.f},
-            ccc3(246, 246, 246)
-        );
+        // Jasna obwodka
+        rect(this, 4.f, 4.f, w - 8.f, h - 8.f,
+            ccc4(245, 245, 245, 255), 1);
 
-        makePanel(
-            this,
-            {size.width / 2.f, size.height / 2.f},
-            {size.width - 21.f, size.height - 21.f},
-            ccc3(132, 69, 39)
-        );
+        // Ciemna linia wewnetrzna
+        rect(this, 7.f, 7.f, w - 14.f, h - 14.f,
+            ccc4(25, 19, 21, 255), 2);
 
-        // Gorny pasek.
-        makePanel(
-            this,
-            {size.width / 2.f, size.height - 42.f},
-            {size.width - 22.f, 54.f},
-            ccc3(105, 48, 28)
-        );
+        // Glowne brazowe wnetrze
+        rect(this, 10.f, 10.f, w - 20.f, h - 20.f,
+            ccc4(145, 77, 43, 255), 3);
 
-        // Logo.
-        makeLabel(
-            this,
-            "PL JUKEBOX",
-            {size.width / 2.f, size.height - 39.f},
-            0.72f
-        );
+        // Delikatny ciemniejszy pas przy gornej krawedzi
+        rect(this, 10.f, h - 42.f, w - 20.f, 32.f,
+            ccc4(105, 49, 29, 255), 4);
 
-        makeLabel(
-            this,
-            "~",
-            {size.width / 2.f - 100.f, size.height - 39.f},
-            0.85f
-        )->setColor({240, 0, 255});
+        // Zielone boczne ramy
+        rect(this, 17.f, 34.f, 12.f, h - 80.f,
+            ccc4(22, 35, 13, 255), 5);
 
-        makeLabel(
-            this,
-            "~",
-            {size.width / 2.f + 100.f, size.height - 39.f},
-            0.85f
-        )->setColor({240, 0, 255});
+        rect(this, 18.f, 35.f, 8.f, h - 82.f,
+            ccc4(75, 205, 23, 255), 6);
 
-        // Wyszukiwarka.
-        makePanel(
-            this,
-            {151.f, size.height - 84.f},
-            {282.f, 34.f},
-            ccc3(17, 17, 22)
-        );
+        rect(this, w - 29.f, 34.f, 12.f, h - 80.f,
+            ccc4(22, 35, 13, 255), 5);
 
-        makePanel(
-            this,
-            {151.f, size.height - 84.f},
-            {276.f, 28.f},
-            ccc3(37, 38, 45)
-        );
+        rect(this, w - 26.f, 35.f, 8.f, h - 82.f,
+            ccc4(75, 205, 23, 255), 6);
 
-        makeLabel(
-            this,
-            "Q",
-            {31.f, size.height - 84.f},
-            0.42f
-        )->setColor({180, 190, 205});
+        // GORNY PASEK
+        // Ciemna obwodka
+        rect(this, 8.f, h - 48.f, w - 16.f, 39.f,
+            ccc4(10, 10, 12, 255), 7);
 
-        auto search = CCTextInputNode::create(
-            225.f,
-            25.f,
-            "Search mashups...",
-            "bigFont.fnt"
-        );
-        search->setPosition({160.f, size.height - 84.f});
-        search->setScale(0.62f);
-        this->addChild(search, 5);
+        // Jasna obwodka
+        rect(this, 10.f, h - 46.f, w - 20.f, 35.f,
+            ccc4(245, 245, 245, 255), 8);
 
-        // Obszar listy.
-        makePanel(
-            this,
-            {163.f, 111.f},
-            {296.f, 187.f},
-            ccc3(54, 27, 19)
-        );
+        // Zielone wnetrze
+        rect(this, 13.f, h - 43.f, w - 26.f, 29.f,
+            ccc4(87, 224, 27, 255), 9);
 
-        makePanel(
-            this,
-            {163.f, 111.f},
-            {286.f, 177.f},
-            ccc3(83, 42, 27)
-        );
+        // Ciemniejszy dolny cien paska
+        rect(this, 13.f, h - 43.f, w - 26.f, 7.f,
+            ccc4(49, 151, 20, 255), 10);
 
-        // Puste karty. Bez utworow, tytulow i statystyk.
-        const float rowY[] = {177.f, 141.f, 105.f, 69.f, 33.f};
+        // Turkusowe koncowki
+        rect(this, 13.f, h - 43.f, 30.f, 29.f,
+            ccc4(10, 25, 25, 255), 11);
 
-        for (int i = 0; i < 5; ++i) {
-            makePanel(
-                this,
-                {158.f, rowY[i]},
-                {276.f, 33.f},
-                ccc3(48, 25, 19)
-            );
+        rect(this, 15.f, h - 41.f, 26.f, 25.f,
+            ccc4(15, 215, 207, 255), 12);
 
-            makePanel(
-                this,
-                {158.f, rowY[i]},
-                {269.f, 27.f},
-                ccc3(76, 38, 26)
-            );
+        rect(this, w - 43.f, h - 43.f, 30.f, 29.f,
+            ccc4(10, 25, 25, 255), 11);
 
-            // Puste miejsce na miniature.
-            makePanel(
-                this,
-                {48.f, rowY[i]},
-                {48.f, 22.f},
-                ccc3(54, 29, 45)
-            );
+        rect(this, w - 41.f, h - 41.f, 26.f, 25.f,
+            ccc4(15, 215, 207, 255), 12);
 
-            // Miejsce na tytul i autora.
-            makePanel(
-                this,
-                {153.f, rowY[i] + 5.f},
-                {130.f, 3.f},
-                ccc3(88, 46, 31),
-                170
-            );
+        // DOLNY PASEK
+        rect(this, 10.f, 10.f, w - 20.f, 24.f,
+            ccc4(12, 12, 14, 255), 13);
 
-            makePanel(
-                this,
-                {131.f, rowY[i] - 5.f},
-                {86.f, 2.f},
-                ccc3(88, 46, 31),
-                140
-            );
+        rect(this, 13.f, 13.f, w - 26.f, 18.f,
+            ccc4(91, 224, 28, 255), 14);
 
-            // Miejsce na przycisk odtwarzania.
-            makePanel(
-                this,
-                {280.f, rowY[i]},
-                {25.f, 25.f},
-                ccc3(26, 45, 19)
-            );
+        // Lewa turkusowa koncowka
+        rect(this, 13.f, 13.f, 31.f, 18.f,
+            ccc4(10, 25, 25, 255), 15);
 
-            makePanel(
-                this,
-                {280.f, rowY[i]},
-                {20.f, 20.f},
-                ccc3(105, 220, 28)
-            );
+        rect(this, 15.f, 15.f, 27.f, 14.f,
+            ccc4(15, 215, 207, 255), 16);
 
-            makeLabel(
-                this,
-                ">",
-                {280.f, rowY[i]},
-                0.42f
-            )->setColor({15, 25, 15});
-        }
+        // Prawa turkusowa koncowka
+        rect(this, w - 44.f, 13.f, 31.f, 18.f,
+            ccc4(10, 25, 25, 255), 15);
 
-        // Pasek przewijania.
-        makePanel(
-            this,
-            {316.f, 111.f},
-            {9.f, 187.f},
-            ccc3(36, 19, 14)
-        );
+        rect(this, w - 42.f, 15.f, 27.f, 14.f,
+            ccc4(15, 215, 207, 255), 16);
 
-        makePanel(
-            this,
-            {316.f, 157.f},
-            {5.f, 86.f},
-            ccc3(255, 145, 63)
-        );
+        // Srodkowy element dolnego paska
+        rect(this, w / 2.f - 25.f, 3.f, 50.f, 29.f,
+            ccc4(10, 10, 12, 255), 17);
 
-        // Prawy panel kategorii.
-        makePanel(
-            this,
-            {391.f, 192.f},
-            {119.f, 153.f},
-            ccc3(15, 14, 17)
-        );
+        rect(this, w / 2.f - 22.f, 6.f, 44.f, 23.f,
+            ccc4(245, 245, 245, 255), 18);
 
-        makePanel(
-            this,
-            {391.f, 192.f},
-            {111.f, 145.f},
-            ccc3(39, 35, 38)
-        );
-
-        // Przycisk ustawien.
-        auto settingsSprite =
-            CCSprite::createWithSpriteFrameName("GJ_optionsBtn_001.png");
-
-        if (settingsSprite) {
-            auto settings = CCMenuItemSpriteExtra::create(
-                settingsSprite,
-                this,
-                menu_selector(PLJukeboxPopup::onSettings)
-            );
-
-            settings->setScale(0.75f);
-
-            auto settingsMenu = CCMenu::create();
-            settingsMenu->setPosition({
-                size.width - 42.f,
-                size.height - 43.f
-            });
-            settingsMenu->addChild(settings);
-            this->addChild(settingsMenu, 8);
-        }
-
-        // Kategorie.
-        m_categoryMenu = CCMenu::create();
-        m_categoryMenu->setPosition({391.f, 218.f});
-        this->addChild(m_categoryMenu, 7);
-
-        auto popular = makeCategory(
-            "POPULAR",
-            menu_selector(PLJukeboxPopup::onPopular),
-            true
-        );
-
-        auto liked = makeCategory(
-            "MOST LIKED",
-            menu_selector(PLJukeboxPopup::onLiked),
-            false
-        );
-
-        auto recent = makeCategory(
-            "RECENT",
-            menu_selector(PLJukeboxPopup::onRecent),
-            false
-        );
-
-        popular->setPosition({0.f, 0.f});
-        liked->setPosition({0.f, -37.f});
-        recent->setPosition({0.f, -74.f});
-
-        m_categoryMenu->addChild(popular);
-        m_categoryMenu->addChild(liked);
-        m_categoryMenu->addChild(recent);
-
-        m_statusLabel = makeLabel(
-            this,
-            "POPULAR",
-            {391.f, 91.f},
-            0.28f
-        );
+        rect(this, w / 2.f - 19.f, 9.f, 38.f, 17.f,
+            ccc4(15, 215, 207, 255), 19);
 
         return true;
     }
@@ -381,26 +137,6 @@ public:
 
         delete ret;
         return nullptr;
-    }
-
-    void onSettings(CCObject*) {
-        if (m_categoryMenu) {
-            m_categoryMenu->setVisible(
-                !m_categoryMenu->isVisible()
-            );
-        }
-    }
-
-    void onPopular(CCObject*) {
-        selectCategory("POPULAR");
-    }
-
-    void onLiked(CCObject*) {
-        selectCategory("MOST LIKED");
-    }
-
-    void onRecent(CCObject*) {
-        selectCategory("RECENT");
     }
 };
 
