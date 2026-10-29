@@ -7,123 +7,184 @@ using namespace geode::prelude;
 
 class PLJukeboxPopup : public geode::Popup {
 protected:
-    void rect(
+    CCLayerColor* m_blackBackground = nullptr;
+    CCNode* m_screen = nullptr;
+    bool m_closing = false;
+
+    void addRect(
         CCNode* parent,
         float x, float y,
         float w, float h,
         ccColor4B color,
         int z = 1
     ) {
-        auto layer = CCLayerColor::create(color, w, h);
-        layer->setPosition({x, y});
-        parent->addChild(layer, z);
+        auto rect = CCLayerColor::create(color, w, h);
+        rect->setPosition({x, y});
+        parent->addChild(rect, z);
+    }
+
+    void addBorder(
+        CCNode* parent,
+        float x, float y,
+        float w, float h
+    ) {
+        // Biala ramka z delikatnym cieniem.
+        const float thickness = 7.f;
+        const float inset = 13.f;
+
+        // Cien.
+        addRect(parent, x - 2.f, y - 2.f,
+            w + 4.f, thickness + 4.f,
+            ccc4(22, 12, 20, 180), 1);
+
+        addRect(parent, x - 2.f, y + h - thickness - 2.f,
+            w + 4.f, thickness + 4.f,
+            ccc4(22, 12, 20, 180), 1);
+
+        addRect(parent, x - 2.f, y,
+            thickness + 4.f, h,
+            ccc4(22, 12, 20, 180), 1);
+
+        addRect(parent, x + w - thickness - 2.f, y,
+            thickness + 4.f, h,
+            ccc4(22, 12, 20, 180), 1);
+
+        // Biale krawedzie.
+        addRect(parent, x, y, w, thickness,
+            ccc4(248, 248, 244, 255), 2);
+
+        addRect(parent, x, y + h - thickness, w, thickness,
+            ccc4(248, 248, 244, 255), 2);
+
+        addRect(parent, x, y, thickness, h,
+            ccc4(248, 248, 244, 255), 2);
+
+        addRect(parent, x + w - thickness, y, thickness, h,
+            ccc4(248, 248, 244, 255), 2);
+
+        // Cienka czerwona linia wewnetrzna.
+        addRect(parent, x + inset, y + inset,
+            w - inset * 2.f, 2.f,
+            ccc4(205, 35, 48, 255), 3);
+
+        addRect(parent, x + inset,
+            y + h - inset - 2.f,
+            w - inset * 2.f, 2.f,
+            ccc4(205, 35, 48, 255), 3);
+
+        addRect(parent, x + inset, y + inset,
+            2.f, h - inset * 2.f,
+            ccc4(205, 35, 48, 255), 3);
+
+        addRect(parent, x + w - inset - 2.f, y + inset,
+            2.f, h - inset * 2.f,
+            ccc4(205, 35, 48, 255), 3);
     }
 
     bool init() {
-        // Szeroki panel, zblizony proporcjami do okna STATS
-        if (!geode::Popup::init(480.f, 300.f)) {
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+
+        if (!geode::Popup::init(winSize.width, winSize.height)) {
             return false;
         }
 
-        auto size = this->getContentSize();
-        float w = size.width;
-        float h = size.height;
+        // Czarny ekran na poczatku.
+        m_blackBackground = CCLayerColor::create(
+            ccc4(0, 0, 0, 255),
+            winSize.width,
+            winSize.height
+        );
+        m_blackBackground->setPosition({0.f, 0.f});
+        this->addChild(m_blackBackground, 0);
 
-        // Zewnetrzna ciemna ramka
-        rect(this, 1.f, 1.f, w - 2.f, h - 2.f,
-            ccc4(18, 13, 19, 255), 0);
+        // Wszystkie elementy widoczne po animacji.
+        m_screen = CCNode::create();
+        m_screen->setPosition({0.f, 0.f});
+        m_screen->setCascadeOpacityEnabled(true);
+        m_screen->setOpacity(0);
+        this->addChild(m_screen, 2);
 
-        // Jasna obwodka
-        rect(this, 4.f, 4.f, w - 8.f, h - 8.f,
-            ccc4(245, 245, 245, 255), 1);
+        // Jasnoniebieskie tlo na caly ekran.
+        addRect(
+            m_screen,
+            0.f, 0.f,
+            winSize.width, winSize.height,
+            ccc4(151, 216, 231, 255),
+            0
+        );
 
-        // Ciemna linia wewnetrzna
-        rect(this, 7.f, 7.f, w - 14.f, h - 14.f,
-            ccc4(25, 19, 21, 255), 2);
+        // Subtelne niebieskie cienie przy krawedziach.
+        addRect(
+            m_screen,
+            0.f, 0.f,
+            winSize.width, 10.f,
+            ccc4(110, 185, 207, 255),
+            1
+        );
 
-        // Glowne brazowe wnetrze
-        rect(this, 10.f, 10.f, w - 20.f, h - 20.f,
-            ccc4(145, 77, 43, 255), 3);
+        addRect(
+            m_screen,
+            0.f, winSize.height - 10.f,
+            winSize.width, 10.f,
+            ccc4(110, 185, 207, 255),
+            1
+        );
 
-        // Delikatny ciemniejszy pas przy gornej krawedzi
-        rect(this, 10.f, h - 42.f, w - 20.f, 32.f,
-            ccc4(105, 49, 29, 255), 4);
+        // Polska bialo-czerwona ramka.
+        float marginX = winSize.width * 0.025f;
+        float marginY = winSize.height * 0.035f;
 
-        // Zielone boczne ramy
-        rect(this, 17.f, 34.f, 12.f, h - 80.f,
-            ccc4(22, 35, 13, 255), 5);
+        addBorder(
+            m_screen,
+            marginX,
+            marginY,
+            winSize.width - marginX * 2.f,
+            winSize.height - marginY * 2.f
+        );
 
-        rect(this, 18.f, 35.f, 8.f, h - 82.f,
-            ccc4(75, 205, 23, 255), 6);
+        // Przycisk X w lewym gornym rogu.
+        auto closeSprite =
+            CCSprite::createWithSpriteFrameName("GJ_closeBtn_001.png");
 
-        rect(this, w - 29.f, 34.f, 12.f, h - 80.f,
-            ccc4(22, 35, 13, 255), 5);
+        if (closeSprite) {
+            auto closeButton = CCMenuItemSpriteExtra::create(
+                closeSprite,
+                this,
+                menu_selector(PLJukeboxPopup::onAnimatedClose)
+            );
 
-        rect(this, w - 26.f, 35.f, 8.f, h - 82.f,
-            ccc4(75, 205, 23, 255), 6);
+            closeButton->setScale(0.85f);
 
-        // GORNY PASEK
-        // Ciemna obwodka
-        rect(this, 8.f, h - 48.f, w - 16.f, 39.f,
-            ccc4(10, 10, 12, 255), 7);
-
-        // Jasna obwodka
-        rect(this, 10.f, h - 46.f, w - 20.f, 35.f,
-            ccc4(245, 245, 245, 255), 8);
-
-        // Zielone wnetrze
-        rect(this, 13.f, h - 43.f, w - 26.f, 29.f,
-            ccc4(87, 224, 27, 255), 9);
-
-        // Ciemniejszy dolny cien paska
-        rect(this, 13.f, h - 43.f, w - 26.f, 7.f,
-            ccc4(49, 151, 20, 255), 10);
-
-        // Turkusowe koncowki
-        rect(this, 13.f, h - 43.f, 30.f, 29.f,
-            ccc4(10, 25, 25, 255), 11);
-
-        rect(this, 15.f, h - 41.f, 26.f, 25.f,
-            ccc4(15, 215, 207, 255), 12);
-
-        rect(this, w - 43.f, h - 43.f, 30.f, 29.f,
-            ccc4(10, 25, 25, 255), 11);
-
-        rect(this, w - 41.f, h - 41.f, 26.f, 25.f,
-            ccc4(15, 215, 207, 255), 12);
-
-        // DOLNY PASEK
-        rect(this, 10.f, 10.f, w - 20.f, 24.f,
-            ccc4(12, 12, 14, 255), 13);
-
-        rect(this, 13.f, 13.f, w - 26.f, 18.f,
-            ccc4(91, 224, 28, 255), 14);
-
-        // Lewa turkusowa koncowka
-        rect(this, 13.f, 13.f, 31.f, 18.f,
-            ccc4(10, 25, 25, 255), 15);
-
-        rect(this, 15.f, 15.f, 27.f, 14.f,
-            ccc4(15, 215, 207, 255), 16);
-
-        // Prawa turkusowa koncowka
-        rect(this, w - 44.f, 13.f, 31.f, 18.f,
-            ccc4(10, 25, 25, 255), 15);
-
-        rect(this, w - 42.f, 15.f, 27.f, 14.f,
-            ccc4(15, 215, 207, 255), 16);
-
-        // Srodkowy element dolnego paska
-        rect(this, w / 2.f - 25.f, 3.f, 50.f, 29.f,
-            ccc4(10, 10, 12, 255), 17);
-
-        rect(this, w / 2.f - 22.f, 6.f, 44.f, 23.f,
-            ccc4(245, 245, 245, 255), 18);
-
-        rect(this, w / 2.f - 19.f, 9.f, 38.f, 17.f,
-            ccc4(15, 215, 207, 255), 19);
+            auto closeMenu = CCMenu::create();
+            closeMenu->setPosition({
+                34.f,
+                winSize.height - 34.f
+            });
+            closeMenu->addChild(closeButton);
+            m_screen->addChild(closeMenu, 10);
+        }
 
         return true;
+    }
+
+    void onEnter() {
+        geode::Popup::onEnter();
+
+        // Pol sekundy czerni, potem plynne pojawienie sie ekranu.
+        m_screen->stopAllActions();
+        m_screen->runAction(
+            CCSequence::create(
+                CCDelayTime::create(0.5f),
+                CCEaseSineOut::create(
+                    CCFadeIn::create(0.45f)
+                ),
+                nullptr
+            )
+        );
+    }
+
+    void finishClose() {
+        this->removeFromParentAndCleanup(true);
     }
 
 public:
@@ -137,6 +198,29 @@ public:
 
         delete ret;
         return nullptr;
+    }
+
+    void onAnimatedClose(CCObject*) {
+        if (m_closing) {
+            return;
+        }
+
+        m_closing = true;
+
+        // Plynne wygaszenie i powrot do menu.
+        m_screen->stopAllActions();
+        m_screen->runAction(
+            CCSequence::create(
+                CCEaseSineIn::create(
+                    CCFadeOut::create(0.3f)
+                ),
+                CCCallFunc::create(
+                    this,
+                    callfunc_selector(PLJukeboxPopup::finishClose)
+                ),
+                nullptr
+            )
+        );
     }
 };
 
